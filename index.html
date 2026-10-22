@@ -1,0 +1,262 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOY SHOP — интернет-магазин</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f6fa;
+      color: #20212a;
+    }
+    header {
+      background: #171923;
+      color: white;
+      padding: 20px 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    header h1 { margin: 0; font-size: 25px; }
+    button, input, select { font: inherit; }
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 15px;
+      cursor: pointer;
+    }
+    .cart-button { background: #b8f34a; font-weight: bold; }
+    .hero { padding: 35px 5% 15px; }
+    .hero h2 { font-size: 30px; margin-bottom: 10px; }
+    .hero p { color: #666; }
+    .filters {
+      padding: 10px 5% 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filters input, .filters select {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 9px;
+      background: white;
+      min-width: 180px;
+      flex: 1;
+    }
+    .products {
+      padding: 0 5% 40px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 3px 14px #0000000a;
+    }
+    .picture {
+      height: 155px;
+      display: grid;
+      place-items: center;
+      background: #e9ebf2;
+      font-size: 65px;
+    }
+    .info { padding: 16px; }
+    .info h3 { margin: 0 0 8px; }
+    .description { color: #737580; font-size: 14px; min-height: 34px; }
+    .price { font-size: 21px; font-weight: bold; margin: 15px 0; }
+    .add {
+      background: #171923;
+      color: white;
+      width: 100%;
+    }
+    .add:hover { background: #343748; }
+    .empty { padding: 20px 5%; color: #666; }
+    .cart {
+      display: none;
+      margin: 0 5% 40px;
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+    }
+    .cart-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #eee;
+      padding: 12px 0;
+    }
+    .qty { display: flex; gap: 8px; align-items: center; }
+    .qty button { background: #eee; padding: 6px 11px; }
+    .checkout { display: grid; gap: 10px; margin-top: 20px; }
+    .checkout input, .checkout textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .submit { background: #b8f34a; font-weight: bold; }
+    footer { text-align: center; padding: 25px; color: #777; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MOY SHOP</h1>
+    <button class="cart-button" onclick="toggleCart()">
+      🛒 Корзина (<span id="count">0</span>)
+    </button>
+  </header>
+
+  <section class="hero">
+    <h2>Товары на каждый день</h2>
+    <p>Выбирай товары и добавляй их в корзину</p>
+  </section>
+
+  <section class="filters">
+    <input id="search" placeholder="🔎 Поиск товаров..." oninput="render()">
+    <select id="category" onchange="render()">
+      <option value="">Все категории</option>
+      <option>Одежда</option>
+      <option>Электроника</option>
+      <option>Автотовары</option>
+      <option>Дом</option>
+    </select>
+  </section>
+
+  <main id="products" class="products"></main>
+
+  <section id="cart" class="cart">
+    <h2>Твоя корзина</h2>
+    <div id="cartItems"></div>
+    <h3>Итого: <span id="total">0</span> грн</h3>
+    <form class="checkout" onsubmit="checkout(event)">
+      <h3>Оформление заказа</h3>
+      <input id="customer" placeholder="Твоё имя" required>
+      <input id="phone" type="tel" placeholder="Номер телефона" required>
+      <textarea id="address" placeholder="Город и отделение доставки" required></textarea>
+      <button class="submit" type="submit">Оформить заказ</button>
+      <p id="message"></p>
+    </form>
+  </section>
+
+  <footer>MOY SHOP © 2026</footer>
+
+  <script>
+    const products = [
+      {id:1, name:"Футболка", price:450, category:"Одежда", emoji:"👕", desc:"Удобная футболка на каждый день"},
+      {id:2, name:"Наушники", price:799, category:"Электроника", emoji:"🎧", desc:"Наушники для музыки"},
+      {id:3, name:"Автоаксессуар", price:250, category:"Автотовары", emoji:"🚗", desc:"Полезная вещь для автомобиля"},
+      {id:4, name:"Рюкзак", price:650, category:"Одежда", emoji:"🎒", desc:"Рюкзак для повседневных вещей"},
+      {id:5, name:"Лампа", price:320, category:"Дом", emoji:"💡", desc:"Освещение для дома"},
+      {id:6, name:"Часы", price:550, category:"Электроника", emoji:"⌚", desc:"Стильный аксессуар"}
+    ];
+
+    let cart = JSON.parse(localStorage.getItem("shopCart") || "{}");
+
+    function money(n) {
+      return new Intl.NumberFormat("uk-UA").format(n);
+    }
+
+    function render() {
+      const q = document.getElementById("search").value.toLowerCase();
+      const cat = document.getElementById("category").value;
+      const filtered = products.filter(p =>
+        p.name.toLowerCase().includes(q) &&
+        (!cat || p.category === cat)
+      );
+
+      document.getElementById("products").innerHTML = filtered.map(p => `
+        <article class="card">
+          <div class="picture">${p.emoji}</div>
+          <div class="info">
+            <h3>${p.name}</h3>
+            <div class="description">${p.desc}</div>
+            <div class="price">${money(p.price)} грн</div>
+            <button class="add" onclick="addToCart(${p.id})">
+              В корзину
+            </button>
+          </div>
+        </article>
+      `).join("");
+
+      if (!filtered.length) {
+        document.getElementById("products").innerHTML =
+          '<p class="empty">Товары не найдены</p>';
+      }
+    }
+
+    function saveCart() {
+      localStorage.setItem("shopCart", JSON.stringify(cart));
+      updateCart();
+    }
+
+    function addToCart(id) {
+      cart[id] = (cart[id] || 0) + 1;
+      saveCart();
+    }
+
+    function changeQty(id, delta) {
+      cart[id] = (cart[id] || 0) + delta;
+      if (cart[id] <= 0) delete cart[id];
+      saveCart();
+    }
+
+    function updateCart() {
+      const entries = Object.entries(cart).filter(([id, qty]) =>
+        products.some(p => p.id === Number(id)) && qty > 0
+      );
+      const count = entries.reduce((s, [, qty]) => s + qty, 0);
+      const total = entries.reduce((s, [id, qty]) =>
+        s + products.find(p => p.id === Number(id)).price * qty, 0
+      );
+
+      document.getElementById("count").textContent = count;
+      document.getElementById("total").textContent = money(total);
+      document.getElementById("cartItems").innerHTML = entries.map(([id, qty]) => {
+        const p = products.find(p => p.id === Number(id));
+        return `<div class="cart-row">
+          <div>${p.emoji} ${p.name}<br><b>${money(p.price)} грн</b></div>
+          <div class="qty">
+            <button type="button" onclick="changeQty(${id},-1)">−</button>
+            ${qty}
+            <button type="button" onclick="changeQty(${id},1)">+</button>
+          </div>
+        </div>`;
+      }).join("");
+
+      if (!entries.length) {
+        document.getElementById("cartItems").innerHTML = "<p>Корзина пока пуста.</p>";
+      }
+    }
+
+    function toggleCart() {
+      const el = document.getElementById("cart");
+      el.style.display = el.style.display === "block" ? "none" : "block";
+      updateCart();
+      if (el.style.display === "block") el.scrollIntoView({behavior:"smooth"});
+    }
+
+    function checkout(event) {
+      event.preventDefault();
+      if (!Object.values(cart).some(q => q > 0)) {
+        document.getElementById("message").textContent = "Сначала добавь товар в корзину.";
+        return;
+      }
+
+      document.getElementById("message").textContent =
+        "Демонстрационный магазин: заказ пока не отправлен. Для реальных заказов нужно подключить сервер и базу данных.";
+    }
+
+    render();
+    updateCart();
+  </script>
+</body>
+</html>
